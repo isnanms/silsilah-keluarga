@@ -7,7 +7,7 @@ import json
 # Set up Google Sheets connection using Streamlit secrets
 def authenticate_google_sheets():
     # Ambil JSON kredensial dari Secrets Streamlit
-    creds_json = st.secrets["service_account"]  # Sesuaikan dengan nama secret kamu
+    creds_json = st.secrets["gcp_service_account"]  # Sesuaikan dengan nama secret kamu
 
     # Menyimpan JSON kredensial ke file sementara
     with open("temp_service_account.json", "w") as json_file:

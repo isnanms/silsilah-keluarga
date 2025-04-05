@@ -1,11 +1,16 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 from graphviz import Digraph
 
 # Setup kredensial dan akses ke Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+creds = Credentials.from_service_account_file(
+    'credentials.json', scopes=scope
+)
+
+# Otorisasi dengan kredensial dan akses ke Google Sheets
 client = gspread.authorize(creds)
 
 # Akses ke Google Sheet (gunakan URL Sheet atau ID Sheet)

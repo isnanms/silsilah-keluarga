@@ -1,5 +1,7 @@
 streamlit
 gspread
-oauth2client
 pandas
+google-auth
+Pillow
+requests
 streamlit-image-modal

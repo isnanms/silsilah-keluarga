@@ -1,16 +1,21 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 
 # Set up Google Sheets connection
 def authenticate_google_sheets():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name('path-to-your-service-account.json', scope)
-    client = gspread.authorize(creds)
-    return client
+    # Load credentials from the service account file
+    creds = None
+    if creds is None or not creds.valid:
+        creds = Credentials.from_service_account_file(
+            'path-to-your-service-account.json', 
+            scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        )
+    return gspread.authorize(creds)
 
 # Get data from Google Sheets
 def get_family_data():

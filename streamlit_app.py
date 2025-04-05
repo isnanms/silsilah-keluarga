@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 from PIL import Image, ImageDraw, ImageOps
 import requests
 from io import BytesIO
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -45,6 +46,36 @@ filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search)]
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
+# --- Modal Viewer ---
+components.html("""
+<style>
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0);
+  background-color: rgba(0,0,0,0.8);
+}
+
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 80%;
+  border-radius: 10px;
+}
+
+.modal:target {
+  display: block;
+}
+</style>
+""", height=0)
+
 for index, row in filtered_df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
@@ -54,16 +85,20 @@ for index, row in filtered_df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = ImageOps.exif_transpose(image)  # ✅ fix auto-rotate
-                    image = image.resize((100, 100))        # ✅ ukuran rapi
+                    image = ImageOps.exif_transpose(image)
+                    image = image.resize((100, 100))
                     image = bulatkan_foto(image)
-
                     st.image(image, use_container_width=False)
 
-                    st.markdown(
-                        f'<a href="{foto_url}" target="_blank"><button style="margin-top:5px;">📸 Lihat HD</button></a>',
-                        unsafe_allow_html=True
-                    )
+                    # Modal trigger
+                    st.markdown(f'<a href="#modal{index}"><button>📸 Lihat HD</button></a>', unsafe_allow_html=True)
+
+                    # Modal HTML block
+                    components.html(f"""
+                    <div id="modal{index}" class="modal">
+                      <a href="#"><img class="modal-content" src="{foto_url}"></a>
+                    </div>
+                    """, height=0)
                 except:
                     st.write("❌ Gagal memuat gambar")
             else:

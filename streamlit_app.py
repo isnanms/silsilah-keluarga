@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ExifTags
 import requests
 from io import BytesIO
 import graphviz
@@ -29,6 +29,25 @@ df = pd.DataFrame(data)
 
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
+
+# --- Fungsi untuk memperbaiki orientasi foto ---
+def perbaiki_orientasi(img):
+    try:
+        # Mengambil metadata EXIF
+        exif = img._getexif()
+        if exif is not None:
+            for tag, value in exif.items():
+                if tag == 274:  # Orientasi (Orientation)
+                    if value == 3:
+                        img = img.rotate(180, expand=True)
+                    elif value == 6:
+                        img = img.rotate(270, expand=True)
+                    elif value == 8:
+                        img = img.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        # Jika tidak ada EXIF
+        pass
+    return img
 
 # --- Fungsi untuk membuat foto jadi bulat ---
 def bulatkan_foto(img):
@@ -68,6 +87,7 @@ for index, row in df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
+                    image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
                     image = image.resize((150, 150))  # Ukuran foto disesuaikan
                     image = bulatkan_foto(image)
                     st.image(image, use_container_width=True)  # Menampilkan foto dengan ukuran yang pas
@@ -92,4 +112,5 @@ for index, row in df.iterrows():
 st.subheader("🌳 Pohon Keluarga")
 
 family_tree = create_family_tree()
-st.image(family_tree.render(), use_container_width=True)
+path = family_tree.render(filename='/mnt/data/family_tree', view=False)  # Rendering ke file PNG
+st.image(path, use_container_width=True)  # Menampilkan pohon keluarga

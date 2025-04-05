@@ -19,7 +19,7 @@ def authenticate_google_sheets():
 def get_family_data():
     # Mengambil data dari Google Sheets
     client = authenticate_google_sheets()
-    sheet = client.open("FamilyData").sheet1  # Ganti dengan nama sheet sesuai kebutuhan
+    sheet = client.open("Sheet1").sheet1  # Ganti dengan nama sheet sesuai kebutuhan
     data = pd.DataFrame(sheet.get_all_records())  # Mengambil data dalam bentuk DataFrame
     return data
 

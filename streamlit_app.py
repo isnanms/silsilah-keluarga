@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
 import gspread
-import requests
-from io import BytesIO
 from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
-# --- Autentikasi ke Google Sheets ---
+# --- Autentikasi ke Google Sheets dengan Scopes ---
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -21,7 +19,7 @@ client = gspread.authorize(credentials)
 # --- URL Google Sheet ---
 sheet_url = "https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc"
 
-# --- Ambil data dari sheet ---
+# --- Ambil data ---
 spreadsheet = client.open_by_url(sheet_url)
 sheet = spreadsheet.worksheet("Data")
 data = sheet.get_all_records()
@@ -30,27 +28,36 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
+# --- CSS untuk foto bulat dan responsif ---
+st.markdown("""
+    <style>
+        .circle-img {
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
 for index, row in df.iterrows():
     with st.container():
-        cols = st.columns([1.1, 3])
+        cols = st.columns([1, 4])
         with cols[0]:
-            foto_url = row.get("Foto URL", "")
-            if foto_url.startswith("http"):
-                try:
-                    response = requests.get(foto_url)
-                    response.raise_for_status()
-                    image = BytesIO(response.content)
-                    st.image(image, caption="", use_container_width=False, width=120)  # Ukuran lebih ideal
-                except requests.exceptions.RequestException:
-                    st.write("📷 Foto tidak dapat dimuat")
+            foto_url = str(row.get("Foto URL", ""))
+            if "http" in foto_url:
+                st.markdown(
+                    f'<img src="{foto_url}" class="circle-img">',
+                    unsafe_allow_html=True
+                )
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
-            
+
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
             ibu_nama = id_to_nama.get(row.get("Ibu ID"), "Tidak diketahui")
 

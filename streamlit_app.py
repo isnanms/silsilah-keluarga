@@ -51,10 +51,19 @@ for index, row in df.iterrows():
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
                     image = ImageOps.exif_transpose(image)  # Koreksi orientasi
-                    image = image.resize((160, 160), Image.Resampling.LANCZOS)  # Ukuran & kualitas
+                    image = image.resize((130, 130), Image.Resampling.LANCZOS)  # Ukuran kecil & tajam
                     image = bulatkan_foto(image)
-                    st.image(image)
-                except:
+                    
+                    # Simpan sementara di buffer
+                    buffer = BytesIO()
+                    image.save(buffer, format="PNG")
+                    st.markdown(
+                        f'<a href="{foto_url}" target="_blank">'
+                        f'<img src="data:image/png;base64,{buffer.getvalue().hex()}" '
+                        f'style="border-radius: 50%; width: 130px; height: 130px;" /></a>',
+                        unsafe_allow_html=True
+                    )
+                except Exception as e:
                     st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")

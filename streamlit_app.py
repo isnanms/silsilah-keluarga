@@ -3,6 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Konfigurasi halaman
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
@@ -21,6 +22,7 @@ df = pd.DataFrame(data)
 
 # --- Tampilkan Data ---
 st.subheader("📜 Daftar Anggota Keluarga")
+
 for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 3])

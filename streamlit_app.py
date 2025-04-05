@@ -2,7 +2,7 @@ import streamlit as st
 import gspread
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
-import json
+import pandas as pd  # Pastikan pandas diimpor
 
 def authenticate_google_sheets():
     # Ambil kredensial dari Streamlit Secrets
@@ -20,7 +20,14 @@ def get_family_data():
     client = authenticate_google_sheets()
     sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc/edit?gid=0#gid=0")
     worksheet = sheet.get_worksheet(0)  # Akses sheet pertama
-    data = pd.DataFrame(worksheet.get_all_records())
+    
+    # Ambil data dan pastikan tidak kosong
+    records = worksheet.get_all_records()
+    if not records:
+        st.error("Data tidak ditemukan di Google Sheets.")
+        return pd.DataFrame()  # Kembalikan DataFrame kosong jika tidak ada data
+    
+    data = pd.DataFrame(records)
     return data
 
 def main():
@@ -28,7 +35,11 @@ def main():
     st.write("Aplikasi ini menampilkan pohon keluarga berdasarkan data di Google Sheets.")
     
     data = get_family_data()
-    st.write(data)
+    
+    if not data.empty:
+        st.write(data)
+    else:
+        st.warning("Tidak ada data yang dapat ditampilkan.")
 
 if __name__ == "__main__":
     main()

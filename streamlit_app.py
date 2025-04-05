@@ -7,6 +7,7 @@ import requests
 from io import BytesIO
 import graphviz
 import tempfile
+import os
 
 # Set halaman Streamlit
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
@@ -93,9 +94,12 @@ for index, row in df.iterrows():
                         response = requests.get(foto_url)
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
-                        image = image.resize((150, 150))  # Ukuran foto tetap kecil, misalnya 150x150
+
+                        # Menjaga kualitas gambar tapi ukuran yang lebih kecil
+                        image.thumbnail((150, 150))  # Ukuran tetap 150x150, kualitas tinggi
+
                         image = bulatkan_foto(image)
-                        st.image(image, use_column_width=True)  # Menampilkan foto dengan ukuran yang pas
+                        st.image(image, use_column_width=False)  # Menampilkan foto dengan ukuran proporsional
                     except:
                         st.write("❌ Gagal memuat gambar")
                 else:

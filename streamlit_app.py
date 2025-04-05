@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -34,6 +33,21 @@ search_query = st.text_input("🔍 Cari anggota keluarga berdasarkan nama:")
 if search_query:
     df = df[df["Nama Lengkap"].str.lower().str.contains(search_query.lower())]
 
+# --- CSS untuk gambar bulat & di tengah ---
+st.markdown("""
+    <style>
+    .foto-bulat {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
@@ -42,12 +56,7 @@ for index, row in df.iterrows():
         cols = st.columns([1, 4])
         with cols[0]:
             if "http" in str(row.get("Foto URL", "")):
-                image_html = f"""
-                <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:auto;">
-                    <img src="{row['Foto URL']}" style="width:100px;height:100px;object-fit:cover;border-radius: 50%;">
-                </div>
-                """
-                components.html(image_html, height=110, width=110)
+                st.markdown(f'<img src="{row["Foto URL"]}" class="foto-bulat">', unsafe_allow_html=True)
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:

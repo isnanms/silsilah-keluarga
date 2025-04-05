@@ -27,26 +27,26 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
+# --- CSS untuk gambar bulat ---
+st.markdown("""
+    <style>
+    .centered {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .circle-img img {
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- Input pencarian ---
 search_query = st.text_input("🔍 Cari anggota keluarga berdasarkan nama:")
 
 if search_query:
     df = df[df["Nama Lengkap"].str.lower().str.contains(search_query.lower())]
-
-# --- CSS untuk gambar bulat & di tengah ---
-st.markdown("""
-    <style>
-    .foto-bulat {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        border-radius: 50%;
-        width: 100px;
-        height: 100px;
-        object-fit: cover;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
@@ -56,12 +56,14 @@ for index, row in df.iterrows():
         cols = st.columns([1, 4])
         with cols[0]:
             if "http" in str(row.get("Foto URL", "")):
-                st.markdown(f'<img src="{row["Foto URL"]}" class="foto-bulat">', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown('<div class="centered circle-img">', unsafe_allow_html=True)
+                    st.image(row["Foto URL"], width=100)
+                    st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
-
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
             ibu_nama = id_to_nama.get(row.get("Ibu ID"), "Tidak diketahui")
 

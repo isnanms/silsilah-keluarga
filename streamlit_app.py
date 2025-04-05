@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageOps
 import requests
 from io import BytesIO
 import base64
+import uuid
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -42,6 +43,48 @@ def bulatkan_foto(img):
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
+# CSS dan JS Modal Pop-up
+st.markdown("""
+<style>
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  padding-top: 60px;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto; background-color: rgba(0,0,0,0.8);
+}
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 80%;
+  border-radius: 12px;
+}
+.close {
+  position: absolute;
+  top: 20px; right: 35px;
+  color: #fff;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
+</style>
+<script>
+function openModal(id, url) {
+    var modal = document.getElementById("modal-" + id);
+    var img = document.getElementById("img-" + id);
+    img.src = url;
+    modal.style.display = "block";
+}
+function closeModal(id) {
+    var modal = document.getElementById("modal-" + id);
+    modal.style.display = "none";
+}
+</script>
+""", unsafe_allow_html=True)
+
+# Tampilkan anggota keluarga
 for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
@@ -51,18 +94,25 @@ for index, row in df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = ImageOps.exif_transpose(image)  # Koreksi orientasi
-                    image = image.resize((120, 120), Image.Resampling.LANCZOS)
+                    image = ImageOps.exif_transpose(image)
+                    image = image.resize((110, 110), Image.Resampling.LANCZOS)
                     image = bulatkan_foto(image)
 
-                    # Tampilkan gambar kecil
-                    st.image(image)
+                    buffered = BytesIO()
+                    image.save(buffered, format="PNG")
+                    encoded = base64.b64encode(buffered.getvalue()).decode()
 
-                    # Tombol lihat gambar besar
-                    with st.expander("🖼️ Lihat foto HD"):
-                        st.image(foto_url, use_container_width=True)
+                    unique_id = str(uuid.uuid4())
 
-                except Exception as e:
+                    st.markdown(f"""
+                    <img src="data:image/png;base64,{encoded}" style="border-radius: 50%; cursor: pointer;" width="110" height="110"
+                         onclick="openModal('{unique_id}', '{foto_url}')">
+                    <div id="modal-{unique_id}" class="modal" onclick="closeModal('{unique_id}')">
+                        <span class="close" onclick="closeModal('{unique_id}')">&times;</span>
+                        <img class="modal-content" id="img-{unique_id}">
+                    </div>
+                    """, unsafe_allow_html=True)
+                except:
                     st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")

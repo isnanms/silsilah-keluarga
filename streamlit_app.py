@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ExifTags
 import requests
 from io import BytesIO
 import graphviz
-import os
+import tempfile
 
 # Set halaman Streamlit
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
@@ -93,7 +93,7 @@ for index, row in df.iterrows():
                         response = requests.get(foto_url)
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
-                        image = image.resize((100, 100))  # Ukuran foto lebih kecil
+                        image = image.resize((80, 80))  # Ukuran foto lebih kecil
                         image = bulatkan_foto(image)
                         st.image(image, use_container_width=True)  # Menampilkan foto dengan ukuran yang pas
                     except:
@@ -116,14 +116,11 @@ for index, row in df.iterrows():
 # --- Tampilkan Pohon Keluarga ---
 st.subheader("🌳 Pohon Keluarga")
 
-# Tentukan folder untuk menyimpan pohon keluarga
-output_path = '/mnt/data/family_tree.png'
-
-# Periksa jika folder belum ada, buat folder terlebih dahulu
-if not os.path.exists('/mnt/data'):
-    os.makedirs('/mnt/data')
+# Tentukan folder untuk menyimpan pohon keluarga menggunakan temporary file
+with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+    tmpfile_path = tmpfile.name
 
 # Buat pohon keluarga dan render
 family_tree = create_family_tree()
-family_tree.render(filename=output_path, view=False)  # Rendering ke file PNG
-st.image(output_path, use_container_width=True)  # Menampilkan pohon keluarga
+family_tree.render(filename=tmpfile_path, view=False)  # Rendering ke file PNG
+st.image(tmpfile_path, use_container_width=True)  # Menampilkan pohon keluarga

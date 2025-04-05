@@ -2,11 +2,9 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
-import base64
-import uuid
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -40,52 +38,69 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# --- Tampilkan Data Anggota Keluarga ---
-st.subheader("📜 Daftar Anggota Keluarga")
+# --- Kolom pencarian ---
+search = st.text_input("🔍 Cari nama anggota keluarga...").lower()
+filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search)]
 
-# CSS dan JS Modal Pop-up
+# --- Tambahkan komponen HTML + CSS untuk pop-up modal gambar ---
 st.markdown("""
 <style>
+.popup-img {
+  border-radius: 50%;
+  width: 100px;
+  cursor: pointer;
+}
 .modal {
   display: none;
   position: fixed;
-  z-index: 9999;
+  z-index: 999;
   padding-top: 60px;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  overflow: auto; background-color: rgba(0,0,0,0.8);
+  left: 0;
+  top: 0;
+  width: 100%%;
+  height: 100%%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.8);
 }
 .modal-content {
   margin: auto;
   display: block;
-  max-width: 80%;
-  border-radius: 12px;
+  max-width: 90%%;
 }
 .close {
   position: absolute;
-  top: 20px; right: 35px;
-  color: #fff;
+  top: 40px;
+  right: 60px;
+  color: white;
   font-size: 40px;
   font-weight: bold;
   cursor: pointer;
 }
 </style>
+
 <script>
-function openModal(id, url) {
-    var modal = document.getElementById("modal-" + id);
-    var img = document.getElementById("img-" + id);
-    img.src = url;
-    modal.style.display = "block";
+function showModal(imgUrl) {
+  const modal = document.getElementById("myModal");
+  const modalImg = document.getElementById("modalImage");
+  modal.style.display = "block";
+  modalImg.src = imgUrl;
 }
-function closeModal(id) {
-    var modal = document.getElementById("modal-" + id);
-    modal.style.display = "none";
+
+function closeModal() {
+  document.getElementById("myModal").style.display = "none";
 }
 </script>
+
+<div id="myModal" class="modal" onclick="closeModal()">
+  <span class="close" onclick="closeModal()">&times;</span>
+  <img class="modal-content" id="modalImage">
+</div>
 """, unsafe_allow_html=True)
 
-# Tampilkan anggota keluarga
-for index, row in df.iterrows():
+# --- Tampilkan Data Anggota Keluarga ---
+st.subheader("📜 Daftar Anggota Keluarga")
+
+for index, row in filtered_df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
         with cols[0]:
@@ -94,24 +109,20 @@ for index, row in df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = ImageOps.exif_transpose(image)
-                    image = image.resize((110, 110), Image.Resampling.LANCZOS)
+                    image = image.resize((100, 100))
                     image = bulatkan_foto(image)
 
-                    buffered = BytesIO()
-                    image.save(buffered, format="PNG")
-                    encoded = base64.b64encode(buffered.getvalue()).decode()
+                    buffer = BytesIO()
+                    image.save(buffer, format="PNG")
+                    st.image(buffer.getvalue(), width=100)
 
-                    unique_id = str(uuid.uuid4())
-
-                    st.markdown(f"""
-                    <img src="data:image/png;base64,{encoded}" style="border-radius: 50%; cursor: pointer;" width="110" height="110"
-                         onclick="openModal('{unique_id}', '{foto_url}')">
-                    <div id="modal-{unique_id}" class="modal" onclick="closeModal('{unique_id}')">
-                        <span class="close" onclick="closeModal('{unique_id}')">&times;</span>
-                        <img class="modal-content" id="img-{unique_id}">
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Tambahkan versi clickable untuk modal
+                    st.markdown(
+                        f"""
+                        <img src="{foto_url}" class="popup-img" onclick="showModal('{foto_url}')">
+                        """,
+                        unsafe_allow_html=True
+                    )
                 except:
                     st.write("❌ Gagal memuat gambar")
             else:

@@ -2,15 +2,22 @@ import streamlit as st
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 import gspread
+import json
 
-# Autentikasi Google Sheets
+# Autentikasi Google Sheets dengan google-auth dan gspread
 def authenticate_google_sheets():
     creds_json = st.secrets["service_account"]  # Ganti sesuai dengan nama secret kamu
     creds_dict = json.loads(creds_json)
     
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope=["https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/drive"])
+    # Menggunakan google-auth untuk autentikasi
+    creds = service_account.Credentials.from_service_account_info(
+        creds_dict,
+        scopes=["https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/drive"]
+    )
+    
     client = gspread.authorize(creds)
     return client
 

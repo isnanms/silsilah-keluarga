@@ -1,15 +1,15 @@
 import streamlit as st
 import pandas as pd
 import gspread
-import json
 from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
-# --- Autentikasi ke Google Sheets menggunakan Streamlit Secrets ---
+# --- Autentikasi Google Sheets ---
 json_key = st.secrets["gcp_service_account"]
-credentials = Credentials.from_service_account_info(json_key)
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+credentials = Credentials.from_service_account_info(json_key, scopes=scope)
 client = gspread.authorize(credentials)
 
 # --- Ambil Data dari Google Sheets ---
@@ -19,27 +19,33 @@ sheet = spreadsheet.worksheet("Data")
 data = sheet.get_all_records()
 df = pd.DataFrame(data)
 
-# --- Mapping ID ke Nama untuk lookup ayah/ibu ---
+# --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Tampilkan Data Anggota ---
+# --- Tampilkan Data ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
-for index, row in df.iterrows():
+for _, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 3])
+
         with cols[0]:
-            if "http" in str(row["Foto URL"]):
-                st.image(row["Foto URL"], width=100)
+            foto_url = row.get("Foto URL", "")
+            if isinstance(foto_url, str) and foto_url.startswith("http"):
+                st.image(foto_url, width=100)
             else:
                 st.write("📷 Foto tidak ditemukan")
+
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
 
-            ayah_nama = id_to_nama.get(row["Ayah ID"], "Tidak diketahui")
-            ibu_nama = id_to_nama.get(row["Ibu ID"], "Tidak diketahui")
+            ayah_id = row.get("Ayah ID")
+            ibu_id = row.get("Ibu ID")
 
-            if pd.notna(row["Ayah ID"]) or pd.notna(row["Ibu ID"]):
+            ayah_nama = id_to_nama.get(ayah_id, "Tidak diketahui") if pd.notna(ayah_id) else "Tidak diketahui"
+            ibu_nama = id_to_nama.get(ibu_id, "Tidak diketahui") if pd.notna(ibu_id) else "Tidak diketahui"
+
+            if pd.notna(ayah_id) or pd.notna(ibu_id):
                 hubungan = f"Anak dari {ayah_nama} dan {ibu_nama}"
             else:
                 hubungan = "Tidak ada data orang tua"

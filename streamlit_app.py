@@ -50,8 +50,8 @@ for index, row in df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = ImageOps.exif_transpose(image)  # Perbaiki orientasi miring
-                    image = image.resize((120, 120))
+                    image = ImageOps.exif_transpose(image)  # Koreksi orientasi
+                    image = image.resize((160, 160), Image.Resampling.LANCZOS)  # Ukuran & kualitas
                     image = bulatkan_foto(image)
                     st.image(image)
                 except:

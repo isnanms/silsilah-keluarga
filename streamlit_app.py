@@ -2,11 +2,9 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ExifTags
 import requests
 from io import BytesIO
-import base64
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -30,7 +28,7 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Fungsi untuk membuat foto jadi bulat ---
+# --- Fungsi untuk membulatkan gambar ---
 def bulatkan_foto(img):
     img = img.convert("RGBA")
     size = img.size
@@ -40,64 +38,32 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# --- Kolom Pencarian ---
-search_query = st.text_input("🔍 Cari Nama Anggota Keluarga").lower()
-filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search_query)]
+# --- Fungsi untuk memperbaiki rotasi gambar jika perlu ---
+def perbaiki_rotasi(image):
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+        exif = image._getexif()
+        if exif is not None:
+            orientation_value = exif.get(orientation, None)
+            if orientation_value == 3:
+                image = image.rotate(180, expand=True)
+            elif orientation_value == 6:
+                image = image.rotate(270, expand=True)
+            elif orientation_value == 8:
+                image = image.rotate(90, expand=True)
+    except:
+        pass
+    return image
+
+# --- Kolom pencarian ---
+search_query = st.text_input("🔎 Cari nama anggota keluarga")
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
-# CSS + JS untuk modal pop-up
-modal_code = """
-<style>
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  padding-top: 5%;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.9);
-}
-.modal-content {
-  margin: auto;
-  display: block;
-  max-width: 90%;
-  max-height: 90%;
-  border-radius: 10px;
-}
-.close {
-  position: absolute;
-  top: 30px;
-  right: 50px;
-  color: #fff;
-  font-size: 40px;
-  font-weight: bold;
-  cursor: pointer;
-}
-</style>
-<script>
-function showModal(src) {
-  var modal = document.getElementById("imgModal");
-  var modalImg = document.getElementById("modalImg");
-  modal.style.display = "block";
-  modalImg.src = src;
-}
-function closeModal() {
-  var modal = document.getElementById("imgModal");
-  modal.style.display = "none";
-}
-</script>
-<div id="imgModal" class="modal">
-  <span class="close" onclick="closeModal()">&times;</span>
-  <img class="modal-content" id="modalImg">
-</div>
-"""
-
-components.html(modal_code, height=0)
+filtered_df = df[df["Nama Lengkap"].str.contains(search_query, case=False, na=False)]
 
 for index, row in filtered_df.iterrows():
     with st.container():
@@ -107,23 +73,20 @@ for index, row in filtered_df.iterrows():
             if "http" in foto_url:
                 try:
                     response = requests.get(foto_url)
-                    image = Image.open(BytesIO(response.content)).convert("RGB")
-                    image = image.resize((110, 110))
+                    image = Image.open(BytesIO(response.content))
+                    image = perbaiki_rotasi(image)
+                    image = image.resize((100, 100))
                     image = bulatkan_foto(image)
-                    buffered = BytesIO()
-                    image.save(buffered, format="PNG")
-                    img_str = base64.b64encode(buffered.getvalue()).decode()
-
-                    img_html = f'''
-                    <img src="data:image/png;base64,{img_str}" width="100" height="100"
-                         style="border-radius: 50%; cursor: pointer;" 
-                         onclick="showModal('{foto_url}')"/>
-                    '''
-                    components.html(img_html, height=110)
+                    st.image(image)
+                    
+                    # Tombol Lihat HD di bawah gambar
+                    hd_url = foto_url
+                    st.markdown(f"<div style='text-align: right; margin-top: -10px;'><a href='{hd_url}' target='_blank'>🔍 Lihat HD</a></div>", unsafe_allow_html=True)
                 except:
                     st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")
+
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")

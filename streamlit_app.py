@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 from PIL import Image, ImageDraw, ExifTags
 import requests
 from io import BytesIO
+import graphviz
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -28,23 +29,26 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Fungsi membulatkan & memperbaiki orientasi gambar ---
-def bulatkan_foto(img):
+# --- Fungsi untuk memperbaiki orientasi foto ---
+def perbaiki_orientasi(img):
     try:
-        for orientation in ExifTags.TAGS.keys():
-            if ExifTags.TAGS[orientation] == 'Orientation':
-                break
         exif = img._getexif()
         if exif is not None:
-            if exif.get(orientation) == 3:
-                img = img.rotate(180, expand=True)
-            elif exif.get(orientation) == 6:
-                img = img.rotate(270, expand=True)
-            elif exif.get(orientation) == 8:
-                img = img.rotate(90, expand=True)
-    except:
-        pass
+            for tag, value in exif.items():
+                if tag == 274:  # EXIF orientation tag
+                    if value == 3:
+                        img = img.rotate(180, expand=True)
+                    elif value == 6:
+                        img = img.rotate(270, expand=True)
+                    elif value == 8:
+                        img = img.rotate(90, expand=True)
+        return img
+    except (AttributeError, KeyError, IndexError):
+        # Jika tidak ada EXIF data, return gambar asli
+        return img
 
+# --- Fungsi untuk membuat foto jadi bulat ---
+def bulatkan_foto(img):
     img = img.convert("RGBA")
     size = img.size
     mask = Image.new("L", size, 0)
@@ -53,14 +57,10 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# --- Pencarian nama ---
-search_name = st.text_input("🔍 Cari Nama Anggota Keluarga").strip().lower()
-filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search_name)] if search_name else df
-
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
-for index, row in filtered_df.iterrows():
+for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
         with cols[0]:
@@ -68,21 +68,15 @@ for index, row in filtered_df.iterrows():
             if "http" in foto_url:
                 try:
                     response = requests.get(foto_url)
-                    image = Image.open(BytesIO(response.content)).resize((100, 100))
-                    image = bulatkan_foto(image)
-                    st.image(image)
-
-                    st.markdown(
-                        f"<div style='text-align: right; font-size: 12px;'>"
-                        f"<a href='{foto_url}' target='_blank'>🔍 Lihat HD</a></div>",
-                        unsafe_allow_html=True
-                    )
-                except Exception as e:
+                    image = Image.open(BytesIO(response.content))
+                    image = perbaiki_orientasi(image)  # Memperbaiki rotasi gambar
+                    image = image.resize((120, 120))  # Ukuran tetap
+                    image = bulatkan_foto(image)  # Membuat foto bulat
+                    st.image(image, use_container_width=True)  # Foto ditampilkan dengan ukuran yang sesuai
+                except:
                     st.write("❌ Gagal memuat gambar")
-                    st.write(str(e))
             else:
                 st.write("📷 Foto tidak ditemukan")
-
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
@@ -95,3 +89,26 @@ for index, row in filtered_df.iterrows():
 
             st.markdown(f"**{hubungan}**")
             st.markdown("---")
+
+# --- Membuat Pohon Keluarga ---
+st.subheader("🌳 Pohon Keluarga")
+
+dot = graphviz.Digraph(comment='Pohon Keluarga')
+
+# Membuat relasi ayah, ibu, dan anak (misalnya 3 generasi)
+for index, row in df.iterrows():
+    nama = row['Nama Lengkap']
+    ayah_id = row.get("Ayah ID")
+    ibu_id = row.get("Ibu ID")
+
+    # Menambahkan node untuk setiap individu
+    dot.node(nama, nama)
+
+    # Membuat hubungan dengan orang tua
+    if pd.notna(ayah_id) and ayah_id in id_to_nama:
+        dot.edge(id_to_nama[ayah_id], nama)
+    if pd.notna(ibu_id) and ibu_id in id_to_nama:
+        dot.edge(id_to_nama[ibu_id], nama)
+
+# Menampilkan pohon keluarga
+st.graphviz_chart(dot)

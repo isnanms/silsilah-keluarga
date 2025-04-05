@@ -7,7 +7,6 @@ import requests
 from io import BytesIO
 import graphviz
 import tempfile
-import os
 
 # Set halaman Streamlit
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
@@ -60,7 +59,7 @@ def bulatkan_foto(img):
     size = img.size
     mask = Image.new("L", size, 0)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size[0], size[1]), fill=150)
+    draw.ellipse((0, 0, size[0], size[1]), fill=255)
     img.putalpha(mask)
     return img
 
@@ -95,11 +94,12 @@ for index, row in df.iterrows():
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
 
-                        # Menjaga kualitas gambar tapi ukuran yang lebih kecil
-                        image.thumbnail((150, 150))  # Ukuran tetap 150x150, kualitas tinggi
-
+                        # Ukuran gambar menjadi lebih kecil dan berkualitas tinggi
+                        image.thumbnail((200, 200))  # Menjaga kualitas gambar, ukuran 200x200
                         image = bulatkan_foto(image)
-                        st.image(image, use_column_width=False)  # Menampilkan foto dengan ukuran proporsional
+
+                        # Menampilkan gambar dengan ukuran yang disesuaikan
+                        st.image(image, use_column_width=False, width=150)  # Ukuran gambar yang lebih kecil
                     except:
                         st.write("❌ Gagal memuat gambar")
                 else:

@@ -30,7 +30,6 @@ id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
 # --- Fungsi membulatkan & memperbaiki orientasi gambar ---
 def bulatkan_foto(img):
-    # Atur orientasi agar tidak miring
     try:
         for orientation in ExifTags.TAGS.keys():
             if ExifTags.TAGS[orientation] == 'Orientation':
@@ -73,14 +72,14 @@ for index, row in filtered_df.iterrows():
                     image = bulatkan_foto(image)
                     st.image(image)
 
-                    # Tautan "Lihat HD" di kanan bawah
                     st.markdown(
                         f"<div style='text-align: right; font-size: 12px;'>"
                         f"<a href='{foto_url}' target='_blank'>🔍 Lihat HD</a></div>",
                         unsafe_allow_html=True
                     )
-                except:
+                except Exception as e:
                     st.write("❌ Gagal memuat gambar")
+                    st.write(str(e))
             else:
                 st.write("📷 Foto tidak ditemukan")
 

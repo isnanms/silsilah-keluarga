@@ -94,12 +94,14 @@ for index, row in df.iterrows():
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
 
-                        # Ukuran gambar menjadi lebih kecil dan berkualitas tinggi
-                        image.thumbnail((200, 200))  # Menjaga kualitas gambar, ukuran 200x200
+                        # Menjaga kualitas gambar, namun menyesuaikan ukuran untuk tampilan di Streamlit
+                        max_size = (150, 150)  # Ukuran maksimal gambar
+                        image.thumbnail(max_size)  # Memastikan ukuran gambar lebih kecil dan tetap berkualitas
+
                         image = bulatkan_foto(image)
 
-                        # Menampilkan gambar dengan ukuran yang disesuaikan
-                        st.image(image, use_column_width=False, width=150)  # Ukuran gambar yang lebih kecil
+                        # Menampilkan gambar dengan ukuran yang lebih kecil
+                        st.image(image, use_column_width=False, width=150)  # Ukuran gambar 150px
                     except:
                         st.write("❌ Gagal memuat gambar")
                 else:

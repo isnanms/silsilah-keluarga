@@ -93,9 +93,9 @@ for index, row in df.iterrows():
                         response = requests.get(foto_url)
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
-                        image = image.resize((80, 80))  # Ukuran foto lebih kecil
+                        image = image.resize((150, 150))  # Ukuran foto tetap kecil, misalnya 150x150
                         image = bulatkan_foto(image)
-                        st.image(image, use_container_width=True)  # Menampilkan foto dengan ukuran yang pas
+                        st.image(image, use_column_width=True)  # Menampilkan foto dengan ukuran yang pas
                     except:
                         st.write("❌ Gagal memuat gambar")
                 else:

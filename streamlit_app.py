@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw, ExifTags
+from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
+from streamlit_image_modal import image_modal
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -28,7 +29,7 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Fungsi untuk membulatkan gambar ---
+# --- Fungsi untuk membuat foto jadi bulat ---
 def bulatkan_foto(img):
     img = img.convert("RGBA")
     size = img.size
@@ -38,51 +39,32 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# --- Fungsi untuk memperbaiki rotasi gambar jika perlu ---
-def perbaiki_rotasi(image):
-    try:
-        for orientation in ExifTags.TAGS.keys():
-            if ExifTags.TAGS[orientation] == 'Orientation':
-                break
-        exif = image._getexif()
-        if exif is not None:
-            orientation_value = exif.get(orientation, None)
-            if orientation_value == 3:
-                image = image.rotate(180, expand=True)
-            elif orientation_value == 6:
-                image = image.rotate(270, expand=True)
-            elif orientation_value == 8:
-                image = image.rotate(90, expand=True)
-    except:
-        pass
-    return image
-
-# --- Kolom pencarian ---
-search_query = st.text_input("🔎 Cari nama anggota keluarga")
+# --- Kolom Pencarian ---
+search_query = st.text_input("🔍 Cari nama anggota keluarga...")
+if search_query:
+    df = df[df["Nama Lengkap"].str.contains(search_query, case=False, na=False)]
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
-filtered_df = df[df["Nama Lengkap"].str.contains(search_query, case=False, na=False)]
-
-for index, row in filtered_df.iterrows():
+for index, row in df.iterrows():
     with st.container():
-        cols = st.columns([1, 4])
+        cols = st.columns([1, 5])
         with cols[0]:
             foto_url = str(row.get("Foto URL", "")).strip()
             if "http" in foto_url:
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = perbaiki_rotasi(image)
                     image = image.resize((100, 100))
                     image = bulatkan_foto(image)
                     st.image(image)
-                    
-                    # Tombol Lihat HD di bawah gambar
-                    hd_url = foto_url
-                    st.markdown(f"<div style='text-align: right; margin-top: -10px;'><a href='{hd_url}' target='_blank'>🔍 Lihat HD</a></div>", unsafe_allow_html=True)
-                except:
+
+                    # Tombol "Lihat HD"
+                    with st.popover("Lihat HD 📸"):
+                        st.image(foto_url, caption=row['Nama Lengkap'], use_container_width=True)
+
+                except Exception as e:
                     st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")

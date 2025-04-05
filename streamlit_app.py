@@ -9,9 +9,12 @@ def authenticate_google_sheets():
     # Ambil JSON kredensial dari Secrets Streamlit
     creds_json = st.secrets["gcp_service_account"]  # Sesuaikan dengan nama secret kamu
 
+    # Mengonversi JSON string menjadi objek Python (jika perlu)
+    creds_dict = json.loads(creds_json) if isinstance(creds_json, str) else creds_json
+
     # Menyimpan JSON kredensial ke file sementara
     with open("temp_service_account.json", "w") as json_file:
-        json.dump(creds_json, json_file)
+        json.dump(creds_dict, json_file)
 
     # Gunakan kredensial yang disimpan
     creds = Credentials.from_service_account_file(

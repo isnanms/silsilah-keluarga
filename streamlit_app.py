@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -41,14 +42,12 @@ for index, row in df.iterrows():
         cols = st.columns([1, 4])
         with cols[0]:
             if "http" in str(row.get("Foto URL", "")):
-                st.markdown(
-                    f"""
-                    <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:auto;">
-                        <img src="{row['Foto URL']}" style="width:100%;height:100%;object-fit:cover;">
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                image_html = f"""
+                <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:auto;">
+                    <img src="{row['Foto URL']}" style="width:100px;height:100px;object-fit:cover;border-radius: 50%;">
+                </div>
+                """
+                components.html(image_html, height=110, width=110)
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:

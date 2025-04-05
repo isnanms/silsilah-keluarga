@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 from PIL import Image, ImageDraw, ImageOps
 import requests
 from io import BytesIO
+import base64
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -51,18 +52,16 @@ for index, row in df.iterrows():
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
                     image = ImageOps.exif_transpose(image)  # Koreksi orientasi
-                    image = image.resize((130, 130), Image.Resampling.LANCZOS)  # Ukuran kecil & tajam
+                    image = image.resize((120, 120), Image.Resampling.LANCZOS)
                     image = bulatkan_foto(image)
-                    
-                    # Simpan sementara di buffer
-                    buffer = BytesIO()
-                    image.save(buffer, format="PNG")
-                    st.markdown(
-                        f'<a href="{foto_url}" target="_blank">'
-                        f'<img src="data:image/png;base64,{buffer.getvalue().hex()}" '
-                        f'style="border-radius: 50%; width: 130px; height: 130px;" /></a>',
-                        unsafe_allow_html=True
-                    )
+
+                    # Tampilkan gambar kecil
+                    st.image(image)
+
+                    # Tombol lihat gambar besar
+                    with st.expander("🖼️ Lihat foto HD"):
+                        st.image(foto_url, use_container_width=True)
+
                 except Exception as e:
                     st.write("❌ Gagal memuat gambar")
             else:

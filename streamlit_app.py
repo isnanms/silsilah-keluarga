@@ -1,40 +1,61 @@
 import streamlit as st
 import gspread
-from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
-from graphviz import Digraph
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
 
-# Setup kredensial dan akses ke Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_file(
-    'credentials.json', scopes=scope
-)
+# Set up Google Sheets connection
+def authenticate_google_sheets():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name('path-to-your-service-account.json', scope)
+    client = gspread.authorize(creds)
+    return client
 
-# Otorisasi dengan kredensial dan akses ke Google Sheets
-client = gspread.authorize(creds)
+# Get data from Google Sheets
+def get_family_data():
+    client = authenticate_google_sheets()
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc/edit?gid=0#gid=0")
+    worksheet = sheet.get_worksheet(0)  # Access the first sheet
+    data = pd.DataFrame(worksheet.get_all_records())
+    return data
 
-# Akses ke Google Sheet (gunakan URL Sheet atau ID Sheet)
-spreadsheet_url = 'https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc/edit?gid=0#gid=0'  # Ganti dengan URL spreadsheet kamu
-sheet = client.open_by_url(spreadsheet_url).sheet1
+# Create family tree
+def create_family_tree(data):
+    G = nx.DiGraph()  # Directed graph to show family tree structure
 
-# Mengambil data dari sheet (asumsi data ada di kolom ID, Nama, Ayah ID, Ibu ID)
-data = sheet.get_all_records()
+    for index, row in data.iterrows():
+        child = row['Nama']
+        father = row['Ayah']
+        mother = row['Ibu']
+        
+        # Add nodes and edges
+        G.add_node(child)
+        if father:
+            G.add_edge(father, child)
+        if mother:
+            G.add_edge(mother, child)
 
-# Membuat pohon keluarga
-dot = Digraph(comment='Pohon Keluarga')
+    return G
 
-# Menambahkan node anggota keluarga ke pohon
-for anggota in data:
-    dot.node(str(anggota['ID']), anggota['Nama'])
+# Display family tree
+def display_family_tree():
+    data = get_family_data()
+    G = create_family_tree(data)
+    
+    # Draw the family tree using NetworkX and Matplotlib
+    plt.figure(figsize=(10, 10))
+    pos = nx.spring_layout(G, seed=42)  # Layout for better visualization
+    nx.draw(G, pos, with_labels=True, node_size=2000, node_color="lightblue", font_size=10, font_weight="bold")
+    
+    st.pyplot(plt)  # Display the tree in Streamlit app
 
-# Menambahkan hubungan antar anggota keluarga (ayah dan ibu)
-for anggota in data:
-    if anggota['Ayah ID']:
-        dot.edge(str(anggota['Ayah ID']), str(anggota['ID']), label="Ayah")
-    if anggota['Ibu ID']:
-        dot.edge(str(anggota['Ibu ID']), str(anggota['ID']), label="Ibu")
+# Main function to run the app
+def main():
+    st.title("Pohon Keluarga")
+    st.write("Aplikasi ini menampilkan pohon keluarga berdasarkan data di Google Sheets.")
+    
+    display_family_tree()
 
-# Render pohon keluarga
-st.title('Pohon Keluarga')
-st.write('Menampilkan hubungan keluarga dalam pohon keluarga')
-st.graphviz_chart(dot)
+if __name__ == "__main__":
+    main()

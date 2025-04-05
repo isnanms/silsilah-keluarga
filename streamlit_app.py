@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
+from PIL import Image, ImageDraw
+import requests
+from io import BytesIO
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
@@ -25,10 +28,15 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Pencarian nama ---
-search_query = st.text_input("🔍 Cari anggota keluarga berdasarkan nama:")
-if search_query:
-    df = df[df["Nama Lengkap"].str.lower().str.contains(search_query.lower())]
+# --- Fungsi untuk membuat foto jadi bulat ---
+def bulatkan_foto(img):
+    img = img.convert("RGBA")
+    size = img.size
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size[0], size[1]), fill=255)
+    img.putalpha(mask)
+    return img
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
@@ -39,13 +47,14 @@ for index, row in df.iterrows():
         with cols[0]:
             foto_url = str(row.get("Foto URL", "")).strip()
             if "http" in foto_url:
-                st.image(
-                    foto_url,
-                    width=100,
-                    use_container_width=False,
-                    caption="",
-                    output_format="auto"
-                )
+                try:
+                    response = requests.get(foto_url)
+                    image = Image.open(BytesIO(response.content))
+                    image = image.resize((120, 120))
+                    image = bulatkan_foto(image)
+                    st.image(image, use_column_width=False)
+                except:
+                    st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:

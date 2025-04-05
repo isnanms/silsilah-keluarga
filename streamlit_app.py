@@ -1,23 +1,27 @@
 import streamlit as st
-import graphviz
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from graphviz import Digraph
 
-# Data keluarga yang sudah diolah
-data = [
-    {'ID': 1, 'Nama': 'Bapak A', 'Ayah ID': None, 'Ibu ID': None},
-    {'ID': 2, 'Nama': 'Ibu A', 'Ayah ID': None, 'Ibu ID': None},
-    {'ID': 3, 'Nama': 'Anak A1', 'Ayah ID': 1, 'Ibu ID': 2},
-    {'ID': 4, 'Nama': 'Anak A2', 'Ayah ID': 1, 'Ibu ID': 2},
-    {'ID': 5, 'Nama': 'Cucu A1', 'Ayah ID': 3, 'Ibu ID': None},
-]
+# Setup kredensial dan akses ke Google Sheets
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+client = gspread.authorize(creds)
+
+# Akses ke Google Sheet (gunakan URL Sheet atau ID Sheet)
+spreadsheet_url = 'https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc/edit?gid=0#gid=0'  # Ganti dengan URL spreadsheet kamu
+sheet = client.open_by_url(spreadsheet_url).sheet1
+
+# Mengambil data dari sheet (asumsi data ada di kolom ID, Nama, Ayah ID, Ibu ID)
+data = sheet.get_all_records()
 
 # Membuat pohon keluarga
 dot = Digraph(comment='Pohon Keluarga')
 
-# Menambahkan node anggota keluarga
+# Menambahkan node anggota keluarga ke pohon
 for anggota in data:
     dot.node(str(anggota['ID']), anggota['Nama'])
-    
+
 # Menambahkan hubungan antar anggota keluarga (ayah dan ibu)
 for anggota in data:
     if anggota['Ayah ID']:

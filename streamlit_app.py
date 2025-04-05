@@ -8,7 +8,11 @@ import pandas as pd
 # Set up Google Sheets connection using Streamlit secrets
 def authenticate_google_sheets():
     # Ambil JSON kredensial dari Secrets Streamlit
-    creds_json = st.secrets["gcp_service_account"]  # Sesuaikan dengan nama secret kamu
+    creds_json = st.secrets["google_service_account"]  # Sesuaikan dengan nama secret kamu
+
+    # Pastikan creds_json adalah string, jika bukan, ubah terlebih dahulu
+    if isinstance(creds_json, dict):
+        creds_json = json.dumps(creds_json)  # Jika berupa dictionary, ubah menjadi string JSON
 
     # Jika kredensial sudah berupa string JSON, ubah menjadi dictionary Python
     creds_dict = json.loads(creds_json)

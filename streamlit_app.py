@@ -12,6 +12,9 @@ import os
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
+# --- Kolom pencarian ---
+search_name = st.text_input("🔍 Cari Anggota Keluarga", "")
+
 # --- Autentikasi ke Google Sheets ---
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -79,34 +82,36 @@ def create_family_tree():
 st.subheader("📜 Daftar Anggota Keluarga")
 
 for index, row in df.iterrows():
-    with st.container():
-        cols = st.columns([1, 4])
-        with cols[0]:
-            foto_url = str(row.get("Foto URL", "")).strip()
-            if "http" in foto_url:
-                try:
-                    response = requests.get(foto_url)
-                    image = Image.open(BytesIO(response.content))
-                    image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
-                    image = image.resize((120, 120))  # Ukuran foto disesuaikan
-                    image = bulatkan_foto(image)
-                    st.image(image, use_container_width=True)  # Menampilkan foto dengan ukuran yang pas
-                except:
-                    st.write("❌ Gagal memuat gambar")
-            else:
-                st.write("📷 Foto tidak ditemukan")
-        with cols[1]:
-            st.markdown(f"### {row['Nama Lengkap']}")
-            ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
-            ibu_nama = id_to_nama.get(row.get("Ibu ID"), "Tidak diketahui")
+    # Filter berdasarkan pencarian nama
+    if search_name.lower() in row['Nama Lengkap'].lower():
+        with st.container():
+            cols = st.columns([1, 4])
+            with cols[0]:
+                foto_url = str(row.get("Foto URL", "")).strip()
+                if "http" in foto_url:
+                    try:
+                        response = requests.get(foto_url)
+                        image = Image.open(BytesIO(response.content))
+                        image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
+                        image = image.resize((100, 100))  # Ukuran foto lebih kecil
+                        image = bulatkan_foto(image)
+                        st.image(image, use_container_width=True)  # Menampilkan foto dengan ukuran yang pas
+                    except:
+                        st.write("❌ Gagal memuat gambar")
+                else:
+                    st.write("📷 Foto tidak ditemukan")
+            with cols[1]:
+                st.markdown(f"### {row['Nama Lengkap']}")
+                ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
+                ibu_nama = id_to_nama.get(row.get("Ibu ID"), "Tidak diketahui")
 
-            if pd.notna(row.get("Ayah ID")) or pd.notna(row.get("Ibu ID")):
-                hubungan = f"Anak dari {ayah_nama} dan {ibu_nama}"
-            else:
-                hubungan = "Tidak ada data orang tua"
+                if pd.notna(row.get("Ayah ID")) or pd.notna(row.get("Ibu ID")):
+                    hubungan = f"Anak dari {ayah_nama} dan {ibu_nama}"
+                else:
+                    hubungan = "Tidak ada data orang tua"
 
-            st.markdown(f"**{hubungan}**")
-            st.markdown("---")
+                st.markdown(f"**{hubungan}**")
+                st.markdown("---")
 
 # --- Tampilkan Pohon Keluarga ---
 st.subheader("🌳 Pohon Keluarga")

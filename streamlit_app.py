@@ -54,7 +54,7 @@ def perbaiki_orientasi(img):
 
 # Fungsi untuk menampilkan gambar dengan ukuran yang lebih kecil dan proporsional
 def tampilkan_gambar(img, width=150):
-    st.image(img, use_column_width=False, width=width)  # Ukuran gambar 150px
+    st.image(img, use_container_width=True, width=width)  # Ukuran gambar 150px
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
@@ -74,11 +74,11 @@ for index, row in df.iterrows():
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
                         
                         # Menampilkan gambar dengan ukuran proporsional dan tombol fullscreen
-                        st.image(image, caption="Klik untuk melihat foto HD", use_column_width=True)
+                        st.image(image, caption="Klik untuk melihat foto HD", use_container_width=True)
                         
                         # Menambahkan tombol fullscreen
                         if st.button(f"Lihat HD {row['Nama Lengkap']}"):
-                            st.image(image, caption=f"{row['Nama Lengkap']} (Foto HD)", use_column_width=True)
+                            st.image(image, caption=f"{row['Nama Lengkap']} (Foto HD)", use_container_width=True)
                         
                     except requests.exceptions.RequestException as e:
                         st.write("📷 Foto tidak dapat dimuat")

@@ -35,7 +35,7 @@ st.subheader("📜 Daftar Anggota Keluarga")
 
 for index, row in df.iterrows():
     with st.container():
-        cols = st.columns([1.2, 3])  # Sedikit lebih lebar agar gambar lebih besar
+        cols = st.columns([1.1, 3])
         with cols[0]:
             foto_url = row.get("Foto URL", "")
             if foto_url.startswith("http"):
@@ -43,14 +43,14 @@ for index, row in df.iterrows():
                     response = requests.get(foto_url)
                     response.raise_for_status()
                     image = BytesIO(response.content)
-                    st.image(image, use_column_width=False, width=150)  # Bisa juga height=200
+                    st.image(image, caption="", use_container_width=False, width=120)  # Ukuran lebih ideal
                 except requests.exceptions.RequestException:
                     st.write("📷 Foto tidak dapat dimuat")
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
-
+            
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")
             ibu_nama = id_to_nama.get(row.get("Ibu ID"), "Tidak diketahui")
 

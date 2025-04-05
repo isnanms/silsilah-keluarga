@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
+import base64
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
@@ -39,42 +40,64 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# --- Kolom pencarian ---
-search = st.text_input("🔍 Cari nama anggota keluarga...").lower()
-filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search)]
+# --- Kolom Pencarian ---
+search_query = st.text_input("🔍 Cari Nama Anggota Keluarga").lower()
+filtered_df = df[df["Nama Lengkap"].str.lower().str.contains(search_query)]
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
-# --- Modal Viewer ---
-components.html("""
+# CSS + JS untuk modal pop-up
+modal_code = """
 <style>
 .modal {
   display: none;
   position: fixed;
-  z-index: 1;
-  padding-top: 100px;
+  z-index: 9999;
+  padding-top: 5%;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgb(0,0,0);
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgba(0,0,0,0.9);
 }
-
 .modal-content {
   margin: auto;
   display: block;
-  max-width: 80%;
+  max-width: 90%;
+  max-height: 90%;
   border-radius: 10px;
 }
-
-.modal:target {
-  display: block;
+.close {
+  position: absolute;
+  top: 30px;
+  right: 50px;
+  color: #fff;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
 }
 </style>
-""", height=0)
+<script>
+function showModal(src) {
+  var modal = document.getElementById("imgModal");
+  var modalImg = document.getElementById("modalImg");
+  modal.style.display = "block";
+  modalImg.src = src;
+}
+function closeModal() {
+  var modal = document.getElementById("imgModal");
+  modal.style.display = "none";
+}
+</script>
+<div id="imgModal" class="modal">
+  <span class="close" onclick="closeModal()">&times;</span>
+  <img class="modal-content" id="modalImg">
+</div>
+"""
+
+components.html(modal_code, height=0)
 
 for index, row in filtered_df.iterrows():
     with st.container():
@@ -84,26 +107,23 @@ for index, row in filtered_df.iterrows():
             if "http" in foto_url:
                 try:
                     response = requests.get(foto_url)
-                    image = Image.open(BytesIO(response.content))
-                    image = ImageOps.exif_transpose(image)
-                    image = image.resize((100, 100))
+                    image = Image.open(BytesIO(response.content)).convert("RGB")
+                    image = image.resize((110, 110))
                     image = bulatkan_foto(image)
-                    st.image(image, use_container_width=False)
+                    buffered = BytesIO()
+                    image.save(buffered, format="PNG")
+                    img_str = base64.b64encode(buffered.getvalue()).decode()
 
-                    # Modal trigger
-                    st.markdown(f'<a href="#modal{index}"><button>📸 Lihat HD</button></a>', unsafe_allow_html=True)
-
-                    # Modal HTML block
-                    components.html(f"""
-                    <div id="modal{index}" class="modal">
-                      <a href="#"><img class="modal-content" src="{foto_url}"></a>
-                    </div>
-                    """, height=0)
+                    img_html = f'''
+                    <img src="data:image/png;base64,{img_str}" width="100" height="100"
+                         style="border-radius: 50%; cursor: pointer;" 
+                         onclick="showModal('{foto_url}')"/>
+                    '''
+                    components.html(img_html, height=110)
                 except:
                     st.write("❌ Gagal memuat gambar")
             else:
                 st.write("📷 Foto tidak ditemukan")
-
         with cols[1]:
             st.markdown(f"### {row['Nama Lengkap']}")
             ayah_nama = id_to_nama.get(row.get("Ayah ID"), "Tidak diketahui")

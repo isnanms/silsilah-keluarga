@@ -12,7 +12,6 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 json_key = st.secrets["gcp_service_account"]
-
 credentials = Credentials.from_service_account_info(json_key, scopes=scope)
 client = gspread.authorize(credentials)
 
@@ -28,17 +27,11 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- CSS untuk foto bulat dan responsif ---
-st.markdown("""
-    <style>
-        .circle-img {
-            border-radius: 50%;
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# --- Input pencarian ---
+search_query = st.text_input("🔍 Cari anggota keluarga berdasarkan nama:")
+
+if search_query:
+    df = df[df["Nama Lengkap"].str.lower().str.contains(search_query.lower())]
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
@@ -47,10 +40,13 @@ for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
         with cols[0]:
-            foto_url = str(row.get("Foto URL", ""))
-            if "http" in foto_url:
+            if "http" in str(row.get("Foto URL", "")):
                 st.markdown(
-                    f'<img src="{foto_url}" class="circle-img">',
+                    f"""
+                    <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:auto;">
+                        <img src="{row['Foto URL']}" style="width:100%;height:100%;object-fit:cover;">
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
             else:

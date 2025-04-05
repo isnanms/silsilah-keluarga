@@ -5,8 +5,6 @@ from google.oauth2.service_account import Credentials
 from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
-import graphviz
-import tempfile
 
 # Set halaman Streamlit
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
@@ -37,7 +35,6 @@ id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 # --- Fungsi untuk memperbaiki orientasi foto ---
 def perbaiki_orientasi(img):
     try:
-        # Mengambil metadata EXIF
         exif = img._getexif()
         if exif is not None:
             for tag, value in exif.items():
@@ -49,40 +46,19 @@ def perbaiki_orientasi(img):
                     elif value == 8:
                         img = img.rotate(90, expand=True)
     except (AttributeError, KeyError, IndexError):
-        # Jika tidak ada EXIF
         pass
     return img
 
-# --- Fungsi untuk membuat foto jadi bulat ---
-def bulatkan_foto(img):
-    img = img.convert("RGBA")
-    size = img.size
-    mask = Image.new("L", size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size[0], size[1]), fill=255)
-    img.putalpha(mask)
-    return img
-
-# --- Fungsi untuk membuat pohon keluarga dengan Graphviz ---
-def create_family_tree():
-    dot = graphviz.Digraph(comment='Pohon Keluarga', format='png')
-    
-    # Menambahkan node untuk keluarga
-    dot.node('A', 'Bapak')
-    dot.node('B', 'Ibu')
-    dot.node('C', 'Anak')
-
-    # Menambahkan hubungan antara node
-    dot.edge('A', 'C')
-    dot.edge('B', 'C')
-
-    return dot
+# Fungsi untuk menampilkan gambar dengan ukuran yang lebih kecil dan proporsional
+def tampilkan_gambar(img):
+    max_size = (300, 300)  # Ukuran maksimal gambar (misalnya 300px)
+    img.thumbnail(max_size)  # Memastikan gambar lebih kecil tapi proporsional
+    st.image(img, use_column_width=False, width=150)  # Ukuran gambar 150px
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
 for index, row in df.iterrows():
-    # Filter berdasarkan pencarian nama
     if search_name.lower() in row['Nama Lengkap'].lower():
         with st.container():
             cols = st.columns([1, 4])
@@ -93,15 +69,7 @@ for index, row in df.iterrows():
                         response = requests.get(foto_url)
                         image = Image.open(BytesIO(response.content))
                         image = perbaiki_orientasi(image)  # Perbaiki orientasi foto
-
-                        # Menjaga kualitas gambar, namun menyesuaikan ukuran untuk tampilan di Streamlit
-                        max_size = (150, 150)  # Ukuran maksimal gambar
-                        image.thumbnail(max_size)  # Memastikan ukuran gambar lebih kecil dan tetap berkualitas
-
-                        image = bulatkan_foto(image)
-
-                        # Menampilkan gambar dengan ukuran yang lebih kecil
-                        st.image(image, use_column_width=False, width=150)  # Ukuran gambar 150px
+                        tampilkan_gambar(image)
                     except:
                         st.write("❌ Gagal memuat gambar")
                 else:
@@ -119,14 +87,3 @@ for index, row in df.iterrows():
                 st.markdown(f"**{hubungan}**")
                 st.markdown("---")
 
-# --- Tampilkan Pohon Keluarga ---
-st.subheader("🌳 Pohon Keluarga")
-
-# Tentukan folder untuk menyimpan pohon keluarga menggunakan temporary file
-with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-    tmpfile_path = tmpfile.name
-
-# Buat pohon keluarga dan render
-family_tree = create_family_tree()
-family_tree.render(filename=tmpfile_path, view=False)  # Rendering ke file PNG
-st.image(tmpfile_path, use_container_width=True)  # Menampilkan pohon keluarga

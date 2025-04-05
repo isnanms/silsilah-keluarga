@@ -1,7 +1,6 @@
 streamlit
-gspread
 pandas
+gspread
 google-auth
 Pillow
 requests
-streamlit-image-modal

@@ -1,15 +1,22 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json
 from oauth2client.service_account import ServiceAccountCredentials
 
+# Konfigurasi halaman
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
-
 st.title("🌳 Silsilah Keluarga Besar")
 
-# --- Autentikasi Google Sheets ---
+# --- Autentikasi Google Sheets dari Streamlit Secrets ---
 scope = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+
+# Ambil kredensial dari Streamlit secrets
+json_key = st.secrets["gcp_service_account"]
+service_account_info = json.loads(json_key)
+
+# Buat kredensial dari dict
+creds = ServiceAccountCredentials.from_json_keyfile_dict(service_account_info, scope)
 client = gspread.authorize(creds)
 
 # --- Ambil Data dari Google Sheets ---

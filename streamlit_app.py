@@ -60,7 +60,7 @@ def bulatkan_foto(img):
     size = img.size
     mask = Image.new("L", size, 0)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size[0], size[1]), fill=255)
+    draw.ellipse((0, 0, size[0], size[1]), fill=150)
     img.putalpha(mask)
     return img
 

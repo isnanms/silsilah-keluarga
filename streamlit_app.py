@@ -6,7 +6,7 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
-# --- Autentikasi ke Google Sheets dengan Scopes ---
+# --- Autentikasi ke Google Sheets ---
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -15,10 +15,8 @@ json_key = st.secrets["gcp_service_account"]
 credentials = Credentials.from_service_account_info(json_key, scopes=scope)
 client = gspread.authorize(credentials)
 
-# --- URL Google Sheet ---
+# --- Ambil data dari Google Sheets ---
 sheet_url = "https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc"
-
-# --- Ambil data ---
 spreadsheet = client.open_by_url(sheet_url)
 sheet = spreadsheet.worksheet("Data")
 data = sheet.get_all_records()
@@ -27,27 +25,10 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
-# --- Input pencarian ---
+# --- Pencarian nama ---
 search_query = st.text_input("🔍 Cari anggota keluarga berdasarkan nama:")
-
 if search_query:
     df = df[df["Nama Lengkap"].str.lower().str.contains(search_query.lower())]
-
-# --- CSS untuk gambar bulat dan di tengah ---
-st.markdown("""
-    <style>
-    .img-wrapper {
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .img-wrapper img {
-        border-radius: 50%;
-        width: 100px;
-        height: 100px;
-        object-fit: cover;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
@@ -56,14 +37,14 @@ for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 4])
         with cols[0]:
-            if "http" in str(row.get("Foto URL", "")):
-                st.markdown(
-                    f"""
-                    <div class="img-wrapper">
-                        <img src="{row['Foto URL']}" alt="Foto">
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+            foto_url = str(row.get("Foto URL", "")).strip()
+            if "http" in foto_url:
+                st.image(
+                    foto_url,
+                    width=100,
+                    use_container_width=False,
+                    caption="",
+                    output_format="auto"
                 )
             else:
                 st.write("📷 Foto tidak ditemukan")

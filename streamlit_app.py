@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 import requests
 from io import BytesIO
 
@@ -38,7 +38,6 @@ def bulatkan_foto(img):
     img.putalpha(mask)
     return img
 
-# ...
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
@@ -51,9 +50,10 @@ for index, row in df.iterrows():
                 try:
                     response = requests.get(foto_url)
                     image = Image.open(BytesIO(response.content))
-                    image = image.resize((120, 120))  # Ukuran tetap
+                    image = ImageOps.exif_transpose(image)  # Perbaiki orientasi miring
+                    image = image.resize((120, 120))
                     image = bulatkan_foto(image)
-                    st.image(image)  # Tidak pakai use_column_width
+                    st.image(image)
                 except:
                     st.write("❌ Gagal memuat gambar")
             else:

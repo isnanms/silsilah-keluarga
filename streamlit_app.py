@@ -1,26 +1,44 @@
+import json
 import streamlit as st
-import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from google.auth.exceptions import RefreshError
 
 def authenticate_google_sheets():
-    # Accessing the secrets
-    creds = st.secrets["service_account"]
-    credentials = Credentials.from_service_account_info(creds)
+    try:
+        creds = st.secrets["service_account"]
+        credentials = Credentials.from_service_account_info(creds)
 
-    # Use credentials to authenticate and access Google Sheets
-    gc = gspread.authorize(credentials)
-    return gc
+        # Try refreshing the token to make sure it's valid
+        credentials.refresh(Request())
 
-# Example: Retrieve sheet data
+        # Use credentials to authenticate
+        client = build('sheets', 'v4', credentials=credentials)
+        return client
+
+    except RefreshError as e:
+        st.error(f"Authentication failed: {str(e)}")
+        return None
+
 def get_family_data():
     client = authenticate_google_sheets()
-    sheet = client.open("FamilyData").sheet1
-    data = sheet.get_all_records()
-    return data
+    if not client:
+        return []
+
+    # Try to open the sheet and fetch data
+    try:
+        sheet = client.spreadsheets().values().get(spreadsheetId='your-spreadsheet-id', range="Sheet1").execute()
+        return sheet['values']
+    except Exception as e:
+        st.error(f"Failed to retrieve sheet data: {str(e)}")
+        return []
 
 def main():
     data = get_family_data()
-    st.write(data)  # Display the sheet data for testing
+    if data:
+        st.write(data)  # Display the sheet data for testing
+    else:
+        st.error("No data available due to authentication or access issues.")
 
 if __name__ == "__main__":
     main()

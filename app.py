@@ -19,7 +19,7 @@ st.subheader(f"👤 {orang['Nama Lengkap']} (ID: {orang['ID']})")
 
 # Menampilkan foto jika tersedia
 if pd.notna(orang['Foto URL']) and orang['Foto URL'].startswith('http'):
-    st.image(orang['Foto URL'], caption=orang['Nama Lengkap'], use_column_width=True)
+    st.image(orang['Foto URL'], caption=orang['Nama Lengkap'], use_container_width=True)
 else:
     st.write("Foto tidak tersedia.")
 

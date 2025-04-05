@@ -28,6 +28,18 @@ df = pd.DataFrame(data)
 # --- Mapping ID ke Nama ---
 id_to_nama = dict(zip(df["ID"], df["Nama Lengkap"]))
 
+# --- Fungsi untuk konversi Google Drive link ---
+def convert_drive_link(url):
+    if "drive.google.com" in url:
+        if "id=" in url:
+            file_id = url.split("id=")[1].split("&")[0]
+        elif "/file/d/" in url:
+            file_id = url.split("/file/d/")[1].split("/")[0]
+        else:
+            return url
+        return f"https://drive.google.com/uc?id={file_id}"
+    return url
+
 # --- Tampilkan Data Anggota Keluarga ---
 st.subheader("📜 Daftar Anggota Keluarga")
 
@@ -35,8 +47,11 @@ for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 3])
         with cols[0]:
-            if "http" in str(row.get("Foto URL", "")):
-                st.image(row["Foto URL"], width=100)
+            raw_url = str(row.get("Foto URL", ""))
+            foto_url = convert_drive_link(raw_url)
+
+            if "http" in foto_url:
+                st.image(foto_url, width=100)
             else:
                 st.write("📷 Foto tidak ditemukan")
         with cols[1]:

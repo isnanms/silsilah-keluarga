@@ -1,23 +1,16 @@
 import streamlit as st
 import pandas as pd
 import gspread
-import json
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 
-# Konfigurasi halaman
 st.set_page_config(page_title="Silsilah Keluarga", layout="wide")
 st.title("🌳 Silsilah Keluarga Besar")
 
-# --- Autentikasi Google Sheets dari Streamlit Secrets ---
-scope = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/drive']
-
-# Ambil kredensial dari Streamlit secrets
+# --- Autentikasi Google Sheets ---
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 json_key = st.secrets["gcp_service_account"]
-service_account_info = json.loads(json_key)
-
-# Buat kredensial dari dict
-creds = ServiceAccountCredentials.from_json_keyfile_dict(service_account_info, scope)
-client = gspread.authorize(creds)
+credentials = Credentials.from_service_account_info(json_key, scopes=scope)
+client = gspread.authorize(credentials)
 
 # --- Ambil Data dari Google Sheets ---
 sheet_url = "https://docs.google.com/spreadsheets/d/1__VDkWvS-FdSHpOhNnLvqej4ggFKU1xqJnobDlTeppc/edit#gid=0"
@@ -28,7 +21,6 @@ df = pd.DataFrame(data)
 
 # --- Tampilkan Data ---
 st.subheader("📜 Daftar Anggota Keluarga")
-
 for index, row in df.iterrows():
     with st.container():
         cols = st.columns([1, 3])

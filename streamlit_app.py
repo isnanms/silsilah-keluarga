@@ -1,44 +1,59 @@
-import json
-import streamlit as st
+from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from google.auth.exceptions import RefreshError
+import gspread
+import streamlit as st
 
 def authenticate_google_sheets():
-    try:
-        creds = st.secrets["service_account"]
-        credentials = Credentials.from_service_account_info(creds)
+    # Ambil kredensial dari file JSON (disesuaikan dengan path file JSON milikmu)
+    creds_json = st.secrets["service_account"]  # Ganti dengan nama secret sesuai di Streamlit
+    creds = Credentials.from_service_account_info(creds_json, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
 
-        # Try refreshing the token to make sure it's valid
-        credentials.refresh(Request())
+    # Refresh kredensial jika sudah kadaluarsa
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
 
-        # Use credentials to authenticate
-        client = build('sheets', 'v4', credentials=credentials)
-        return client
-
-    except RefreshError as e:
-        st.error(f"Authentication failed: {str(e)}")
-        return None
+    # Autentikasi dengan Google Sheets
+    client = gspread.authorize(creds)
+    return client
 
 def get_family_data():
+    # Mengambil data dari Google Sheets
     client = authenticate_google_sheets()
-    if not client:
-        return []
+    sheet = client.open("FamilyData").sheet1  # Ganti dengan nama sheet sesuai kebutuhan
+    data = pd.DataFrame(sheet.get_all_records())  # Mengambil data dalam bentuk DataFrame
+    return data
 
-    # Try to open the sheet and fetch data
-    try:
-        sheet = client.spreadsheets().values().get(spreadsheetId='your-spreadsheet-id', range="Sheet1").execute()
-        return sheet['values']
-    except Exception as e:
-        st.error(f"Failed to retrieve sheet data: {str(e)}")
-        return []
+def build_family_tree(data):
+    # Membuat pohon keluarga berdasarkan data
+    G = nx.DiGraph()  # Membuat directed graph
+    
+    for index, row in data.iterrows():
+        anak = row["Nama Lengkap"]  # Kolom "Nama Lengkap" untuk nama anggota keluarga
+        ayah_id = row["Ayah ID"]  # Kolom "Ayah ID" untuk mencari ID ayah
+        ibu_id = row["Ibu ID"]  # Kolom "Ibu ID" untuk mencari ID ibu
+        
+        G.add_node(anak)  # Menambahkan anggota keluarga ke graph
 
+        if pd.notnull(ayah_id):  # Jika ada ID ayah
+            ayah = data[data["ID"] == ayah_id]["Nama Lengkap"].values[0]
+            G.add_edge(ayah, anak)  # Menambahkan hubungan antara ayah dan anak
+
+        if pd.notnull(ibu_id):  # Jika ada ID ibu
+            ibu = data[data["ID"] == ibu_id]["Nama Lengkap"].values[0]
+            G.add_edge(ibu, anak)  # Menambahkan hubungan antara ibu dan anak
+
+    return G
+
+def display_family_tree():
+    data = get_family_data()  # Mendapatkan data keluarga
+    G = build_family_tree(data)  # Membangun pohon keluarga
+
+    # Menampilkan pohon keluarga menggunakan networkx
+    st.write("Pohon Keluarga")
+    nx.draw(G, with_labels=True, font_size=8, node_size=2000, node_color="lightblue", font_weight="bold")
+    
 def main():
-    data = get_family_data()
-    if data:
-        st.write(data)  # Display the sheet data for testing
-    else:
-        st.error("No data available due to authentication or access issues.")
+    display_family_tree()
 
 if __name__ == "__main__":
     main()
